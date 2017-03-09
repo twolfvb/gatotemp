@@ -68,29 +68,24 @@ def fake_entry(fecha, temp1, temp2, temp3):
 
 @app.route('/')
 def show_entries():
-    db = get_db()
-    cur = db.execute('select date_log, temperature from tempLog')
-    entries = cur.fetchall()
-    tsv = 'date\tclose\n'
-    for entry in entries:
-        tsv += str(entry[0])+'\t'+str(entry[1])+'\n'
-    print entries
-    f = open("/home/tw/PycharmProjects/gatoTemp/static/data.tsv", "w")
-    f.write(tsv)
-    f.close()
-    return render_template('main.html', entries=entries)
+    return render_template('main.html')
 
 
 @app.route('/datos/<panel_id>/<year>/<month>/<day>')
 def data_daily(panel_id, year, month, day):
     db = get_db()
+    date_1 = "Datetime('%s-%s-%s 00:00:00')" % (year, tabzeroes(month), tabzeroes(day))
+    date_2 = "Datetime('%s-%s-%s 23:59:59')" % (year, tabzeroes(month), tabzeroes(day))
     sql = "SELECT panel_id, date_log, temperature FROM tempLog " \
-          "WHERE strftime('%%Y', date_log) = %s " \
-          "AND strftime('%%m', date_log) = %s " \
-          "AND strftime('%%d', date_log) = %s ORDER BY date(date_log)" % (year, month, day)
+          "WHERE date_log >= %s AND date_log <= %s" % (date_1, date_2)
     res = db.execute(sql)
-    print sql
-    return str(res.fetchall())
+    tsv = 'id\tdate\ttemperature\n'
+    for entry in res:
+        tsv += str(entry[0]) + '\t' + str(entry[1]) + '\t' + str(entry[2]) + '\n'
+    f = open("/home/tw/PycharmProjects/gatoTemp/static/auxdata.tsv", "w")
+    f.write(tsv)
+    f.close()
+    return app.send_static_file('auxdata.tsv')
 
 
 def tabzeroes(number):
@@ -105,15 +100,25 @@ def data_time_range(panel_id, year_1, month_1, day_1, year_2, month_2, day_2):
     date_2 = "Datetime('%s-%s-%s 23:59:59')" % (year_2, tabzeroes(month_2), tabzeroes(day_2))
     sql = "SELECT panel_id, date_log, temperature FROM tempLog " \
           "WHERE date_log >= %s AND date_log <= %s" % (date_1, date_2)
-    print sql
     db = get_db()
     res = db.execute(sql)
-    print str(res.fetchall())
-    return str(res.fetchall())
+    tsv = 'id\tdate\ttemperature\n'
+    for entry in res:
+        tsv += str(entry[0]) + '\t' + str(entry[1]) + '\t' + str(entry[2]) + '\n'
+
+    f = open("/home/tw/PycharmProjects/gatoTemp/static/auxdata.tsv", "w")
+    f.write(tsv)
+    f.close()
+    return app.send_static_file('auxdata.tsv')
+
+
+@app.route('/auxdata.tsv')
+def data_file():
+    return app.send_static_file('auxdata.tsv')
 
 
 @app.route('/data.tsv')
-def data_file():
+def dataa_file():
     return app.send_static_file('data.tsv')
 
 if __name__ == '__main__':
